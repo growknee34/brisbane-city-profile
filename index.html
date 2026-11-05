@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Greater Brisbane Live Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap">
+<style>
+/* Layout: a 1280x720 map-sheet stage. One live SA2 map stays in place on the right and re-colours as the talk moves through the indicators. Single light theme, chosen for projectors. */
+:root{
+  --paper:#F4F6F6; --paper-2:#E3E8EB; --ink:#1B2430; --mid:#5B6872; --line:#BAC7CE; --datum:#1F5A99; --tint:#E1E9F1; --nodata:#C9CED2; --bar:#A3ACB3;
+  --f-body:"Barlow","Bahnschrift","Segoe UI",system-ui,sans-serif;
+  --f-cond:"Barlow Semi Condensed","Bahnschrift SemiCondensed","Arial Narrow",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--paper-2);color:var(--ink);font-family:var(--f-body);overflow:hidden;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,p,ul,ol,dl,dd,figure{margin:0;padding:0}
+ul,ol{list-style:none}
+b{font-weight:600}
+a{color:var(--datum)}
+:focus-visible{outline:2px solid var(--datum);outline-offset:2px}
+
+/* ---------- stage ---------- */
+.stage{position:fixed;left:50%;top:calc(50% - 22px);width:1280px;height:720px;transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center;background:var(--paper);overflow:hidden}
+.stage::before,.stage::after{content:"";position:absolute;pointer-events:none;z-index:5}
+.stage::before{inset:12px;border:2px solid var(--ink)}
+.stage::after{inset:18px;border:1px solid var(--ink)}
+.slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .4s var(--ease),visibility 0s linear .4s}
+.slide.on{opacity:1;visibility:visible;transition:opacity .4s var(--ease)}
+.title{position:absolute;left:56px;top:40px;right:56px;font-weight:600;font-size:46px;line-height:1.08;letter-spacing:-.005em}
+.title.long{font-size:40px}
+.body{position:absolute;left:56px;right:56px;top:124px;bottom:86px}
+[data-step]{opacity:0;transform:translateY(8px);transition:opacity .35s var(--ease),transform .35s var(--ease)}
+[data-step].shown{opacity:1;transform:none}
+
+/* metadata strip */
+.meta{position:absolute;right:18px;bottom:18px;width:640px;height:54px;display:grid;grid-template-columns:170px minmax(0,1fr) 110px 90px;border:1px solid var(--ink);background:var(--paper);font-family:var(--f-cond);z-index:6}
+.meta div{padding:5px 8px;min-width:0}
+.meta div+div{border-left:1px solid var(--ink)}
+.meta dt{font-size:11px;color:var(--mid);line-height:1.1}
+.meta dd{font-size:15px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+
+/* shared text */
+.lab{font-family:var(--f-cond);font-weight:600;font-size:20px;color:var(--datum)}
+.big{font-size:28px;line-height:1.3}
+.txt{font-size:23px;line-height:1.32}
+.small{font-size:19px;line-height:1.3}
+.src{font-family:var(--f-cond);font-size:16px;line-height:1.3;color:var(--mid)}
+.bul li{position:relative;padding-left:20px}
+.bul li::before{content:"";position:absolute;left:0;top:.6em;width:8px;height:8px;border:1.5px solid var(--datum)}
+.sub{font-weight:600;font-size:24px;padding-bottom:8px;border-bottom:1.5px solid var(--ink);margin-bottom:12px}
+
+/* ---------- live map ---------- */
+.mapwrap{position:absolute;left:676px;top:112px;width:574px;height:530px;z-index:3;opacity:0;visibility:hidden;transition:opacity .45s var(--ease),visibility 0s linear .45s,left .6s var(--ease),top .6s var(--ease),width .6s var(--ease),height .6s var(--ease)}
+.mapwrap.on{opacity:1;visibility:visible;transition:opacity .45s var(--ease),left .6s var(--ease),top .6s var(--ease),width .6s var(--ease),height .6s var(--ease)}
+.mapwrap svg{position:absolute;left:0;top:0;height:100%;width:auto;overflow:visible}
+.sa2{stroke:rgba(27,36,48,.3);stroke-width:.6;vector-effect:non-scaling-stroke;transition:fill .7s var(--ease);cursor:crosshair}
+.mapwrap.outline .sa2{fill:transparent!important;stroke:var(--ink);stroke-width:.6}
+.sa2.hl{stroke:var(--ink);stroke-width:1.3}
+.sa2:hover{stroke:var(--ink);stroke-width:2}
+.mapwrap.ex .legend{top:50%;transform:translateY(-50%)}
+.legend{position:absolute;right:0;top:0;width:186px;font-family:var(--f-cond);transition:opacity .3s}
+.legend h4{font-size:18px;font-weight:600;line-height:1.15;margin-bottom:8px}
+.legend li{display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:center;font-size:17px;padding:3px 0;font-variant-numeric:tabular-nums}
+.legend .sw{width:24px;height:18px;border:1px solid rgba(27,36,48,.35)}
+.legend .note{font-size:15px;color:var(--mid);margin-top:10px;line-height:1.25}
+.callouts{position:absolute;inset:0;pointer-events:none}
+.co{position:absolute;width:186px;font-family:var(--f-cond);font-size:17px;font-weight:600;line-height:1.2;color:var(--ink);border-left:2px solid var(--ink);padding:2px 0 2px 10px;opacity:0;transition:opacity .35s var(--ease)}
+.co small{display:block;font-weight:500;color:var(--mid);font-size:16px}
+.co.shown{opacity:1}
+.co.near{width:auto;white-space:nowrap;background:var(--paper);border:1px solid var(--ink);border-left-width:2px;padding:3px 9px}
+.co.near.flip{border-left-width:1px;border-right-width:2px}
+.leaders{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.leaders line{stroke:var(--ink);stroke-width:1;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .5s var(--ease)}
+.leaders circle{fill:var(--paper);stroke:var(--ink);stroke-width:1.5;opacity:0;transition:opacity .3s}
+.leaders.shown line{stroke-dashoffset:0}.leaders.shown circle{opacity:1}
+.tip{position:absolute;z-index:9;pointer-events:none;background:var(--ink);color:var(--paper);font-family:var(--f-cond);padding:6px 10px;font-size:16px;line-height:1.25;opacity:0;transition:opacity .12s;white-space:nowrap}
+.tip b{display:block;font-size:17px}
+.tip.shown{opacity:1}
+.mapcap{position:absolute;left:0;bottom:-30px;font-family:var(--f-cond);font-size:15px;color:var(--mid)}
+
+/* ---------- indicator slides ---------- */
+.ind .left{position:absolute;left:0;top:0;width:580px;bottom:0;display:grid;gap:12px;align-content:start}
+.ind .left .bul{display:grid;gap:4px}
+.sdg{background:var(--tint);padding:10px 14px;display:grid;gap:4px;font-size:19px;line-height:1.3}
+.sdg b{color:var(--datum)}
+.say{font-size:21px;line-height:1.3;color:var(--datum);font-weight:500;border-left:3px solid var(--datum);padding-left:12px}
+
+/* cover */
+.cover .left{position:absolute;left:30px;top:30px;width:620px;display:grid;gap:22px}
+.cover h1{font-weight:600;font-size:64px;line-height:1.02;letter-spacing:-.01em}
+.record div{display:grid;grid-template-columns:160px 1fr;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)}
+.record dt{font-family:var(--f-cond);color:var(--mid);font-size:18px}
+.record dd{font-size:20px;line-height:1.3}
+.gt{position:absolute;background:var(--ink)}
+.gl{position:absolute;font-family:var(--f-cond);font-size:13px;color:var(--mid)}
+
+/* background */
+.bg{display:grid;grid-template-columns:450px 1fr;gap:48px;height:100%}
+.pts{display:grid;gap:18px;align-content:start}
+.pt{border-top:1.5px solid var(--ink);padding-top:8px}
+.pt h3{font-size:28px;font-weight:600}
+.pt p{font-size:22px;line-height:1.35;color:var(--mid)}
+.st{border-collapse:collapse;width:100%;font-size:21px}
+.st th,.st td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.st thead th{font-family:var(--f-cond);color:var(--mid);font-weight:500;font-size:18px;border-bottom:1.5px solid var(--ink)}
+.st .n{font-family:var(--f-cond);color:var(--datum);width:28px}
+.st tr.us td{background:var(--tint)}
+.st tr.us .sup{color:var(--datum);font-weight:600}
+.takeaway{color:var(--datum);font-weight:600;font-size:20px;margin-top:14px}
+
+/* purpose */
+.pflow{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-bottom:26px}
+.pflow li{border:1.25px solid var(--ink);padding:12px 16px;position:relative}
+.pflow li+li::before{content:"";position:absolute;left:-28px;top:50%;width:12px;height:12px;border-top:2px solid var(--ink);border-right:2px solid var(--ink);transform:translateY(-50%) rotate(45deg)}
+.pflow h4,.role h4{font-size:27px;font-weight:600;color:var(--datum);margin-bottom:4px}
+.pflow p{font-size:22px;line-height:1.3}
+.sub2{font-weight:600;font-size:25px;margin-bottom:12px}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.role{border:1.25px solid var(--ink);padding:14px 18px;display:grid;gap:6px;align-content:start}
+.role.sup{background:var(--tint);border:2px solid var(--datum)}
+.role p{font-size:23px;line-height:1.3}
+.role p.mut{color:var(--mid);font-size:20px}
+
+/* architecture */
+.pipe{display:flex;align-items:stretch;height:196px}
+.node{flex:0 0 164px;border:1.25px solid var(--ink);padding:10px 12px;background:var(--paper)}
+.node h3{font-size:24px;font-weight:600;margin-bottom:6px;line-height:1.1}
+.node p{font-size:18px;line-height:1.3;color:var(--mid)}
+.node.dt{border:2px solid var(--datum);background:var(--tint)}
+.node.dt h3{color:var(--datum)}
+.link{flex:1;position:relative}
+.link::before{content:"";position:absolute;left:6px;right:6px;top:50%;border-top:1.5px solid var(--ink)}
+.link::after{content:"";position:absolute;right:6px;top:50%;width:9px;height:9px;border-top:1.5px solid var(--ink);border-right:1.5px solid var(--ink);transform:translateY(-50%) rotate(45deg)}
+.link span{position:absolute;left:2px;right:2px;bottom:calc(50% + 6px);text-align:center;font-family:var(--f-cond);font-size:15px;line-height:1.1;color:var(--mid)}
+.packet{position:absolute;top:calc(50% - 5px);left:6px;width:10px;height:10px;background:var(--datum);border-radius:50%;opacity:0}
+.loop{position:relative;height:92px}
+.loop svg{position:absolute;inset:0;width:100%;height:90px;overflow:visible}
+.loop path{fill:none;stroke:var(--datum);stroke-width:2}
+.loop path.hd{fill:var(--datum);stroke:none}
+.loop p{position:absolute;left:350px;top:16px;width:690px;font-size:18px;color:var(--datum);font-weight:500;line-height:1.3}
+.spec{margin-top:24px}
+.spec dl{display:grid;grid-template-columns:repeat(4,1fr)}
+.spec dl div{padding:4px 14px 0 0}
+.spec dl div+div{border-left:1px solid var(--line);padding-left:14px}
+.spec dt{font-family:var(--f-cond);color:var(--mid);font-size:18px}
+.spec dd{font-size:20px;line-height:1.3}
+
+/* demo */
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:56px}
+.steps{counter-reset:s;display:grid;gap:20px;font-size:26px;line-height:1.3}
+.steps li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:12px}
+.steps li::before{content:counter(s);font-family:var(--f-cond);font-weight:600;color:var(--datum);border:1.5px solid var(--datum);width:32px;height:32px;display:grid;place-items:center;font-size:18px;margin-top:2px}
+.btn{display:inline-block;margin-top:28px;padding:10px 16px;border:1.5px solid var(--datum);color:var(--datum);text-decoration:none;font-weight:600;font-size:20px}
+.btn:hover{background:var(--tint)}
+.shot img{display:block;max-height:430px;width:auto;max-width:100%;border:1px solid var(--ink);background:#fff}
+.shot figcaption{font-family:var(--f-cond);font-size:16px;color:var(--mid);margin-top:6px}
+
+/* workflow */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:34px}
+.flow li{border:1.25px solid var(--ink);padding:12px 14px 16px;display:grid;gap:4px;align-content:start;position:relative;min-height:168px}
+.flow li:last-child{background:var(--tint);border:2px solid var(--datum)}
+.flow .sn{font-family:var(--f-cond);color:var(--datum);font-weight:600;font-size:19px}
+.flow b{font-size:26px}
+.flow span:last-child{color:var(--mid);font-size:19px;line-height:1.3}
+.flow li+li::before{content:"";position:absolute;left:-24px;top:50%;width:10px;height:10px;border-top:2px solid var(--ink);border-right:2px solid var(--ink);transform:translateY(-50%) rotate(45deg)}
+.used{margin-top:40px}
+.used dl div{display:grid;grid-template-columns:80px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:21px}
+.used dt{font-family:var(--f-cond);font-weight:600;color:var(--datum)}
+.used .nb{margin-top:12px;color:var(--mid);font-size:20px}
+
+/* data supplied */
+.sup2{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.card{border:1.25px solid var(--ink);padding:16px 18px}
+.card h3{font-size:30px;font-weight:600;color:var(--datum)}
+.card p{font-size:22px;line-height:1.3;margin-top:4px}
+.facts{margin-top:28px;display:grid;grid-template-columns:repeat(3,1fr);border-top:1.5px solid var(--ink)}
+.facts div{padding:10px 14px 0 0}
+.facts div+div{border-left:1px solid var(--line);padding-left:14px}
+.facts dt{font-family:var(--f-cond);color:var(--mid);font-size:18px}
+.facts dd{font-size:22px}
+
+/* scatter */
+.sc{position:absolute;left:0;top:0;width:700px;height:500px}
+.sc svg{width:100%;height:100%;overflow:visible}
+.sc .ax{stroke:var(--ink);stroke-width:1}
+.sc .gr{stroke:var(--line);stroke-width:.6}
+.sc text{font-family:var(--f-cond);font-size:16px;fill:var(--mid)}
+.sc text.at{font-size:17px;fill:var(--ink)}
+.dot{fill:var(--datum);fill-opacity:.7;stroke:var(--paper);stroke-width:.8;cursor:crosshair}
+.dot:hover{fill-opacity:1;stroke:var(--ink);stroke-width:1.5}
+.scr{position:absolute;left:760px;right:0;top:10px}
+
+/* SDG synthesis */
+.syn .left{position:absolute;left:0;top:0;width:590px;bottom:0;display:grid;gap:16px;align-content:start}
+.fd{display:grid;gap:6px}
+.fd h3{font-size:23px;font-weight:600;line-height:1.2}
+.fd .t{color:var(--datum);font-weight:600;font-size:19px;line-height:1.3}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;height:78px}
+.mini.n3{grid-template-columns:repeat(3,1fr)}
+.mini div{display:flex;flex-direction:column;justify-content:flex-end;height:100%;font-family:var(--f-cond);font-size:15px;color:var(--mid);text-align:center}
+.mini i{display:block;background:var(--bar);height:calc(var(--h) * .62);margin-bottom:3px;transform-origin:bottom;transform:scaleY(0);transition:transform .7s var(--ease) .1s}
+.mini i.hi{background:var(--datum)}
+.shown .mini i{transform:scaleY(1)}
+.mini span b{color:var(--ink);font-size:16px}
+
+/* challenges */
+.chal{border-collapse:collapse;width:100%;font-size:21px}
+.chal th,.chal td{text-align:left;padding:10px 14px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.chal thead th{font-family:var(--f-cond);color:var(--mid);font-weight:500;font-size:18px;border-bottom:1.5px solid var(--ink)}
+.chal tbody th{font-weight:600;width:44%}
+
+/* explorer */
+.ex .left{position:absolute;left:0;top:0;width:450px;bottom:0;display:grid;gap:14px;align-content:start}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tabs button{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center;text-align:left;font:500 17px var(--f-body);line-height:1.15;min-height:48px;color:var(--ink);background:var(--paper);border:1px solid var(--line);padding:7px 10px;cursor:pointer}
+.tabs button kbd{font:600 15px var(--f-cond);color:var(--datum);border:1.25px solid var(--datum);width:24px;height:24px;display:grid;place-items:center}
+.tabs button[aria-pressed="true"]{background:var(--tint);border-color:var(--datum);font-weight:600}
+.find{display:grid;gap:4px}
+.find label{font-family:var(--f-cond);font-size:16px;color:var(--mid)}
+.combo{position:relative}
+.combo ul{position:absolute;left:0;right:0;bottom:calc(100% + 4px);max-height:260px;overflow-y:auto;overscroll-behavior:contain;background:var(--paper);border:1px solid var(--ink);z-index:12;box-shadow:0 2px 0 var(--line)}
+.combo li{padding:7px 10px;font-size:18px;cursor:pointer;display:flex;justify-content:space-between;gap:10px}
+.combo li small{font-family:var(--f-cond);color:var(--mid);font-size:15px}
+.combo li[aria-selected="true"],.combo li:hover{background:var(--tint)}
+.clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:0;background:transparent;color:var(--mid);font:400 24px/1 var(--f-body);cursor:pointer;z-index:2}
+.clear:hover{color:var(--ink);background:var(--tint)}
+.find input{padding-right:40px!important;width:100%;box-sizing:border-box;font:400 19px var(--f-body);padding:7px 10px;border:1px solid var(--ink);background:var(--paper);color:var(--ink)}
+.readout{font-size:19px;line-height:1.35;min-height:52px}
+.readout b{font-size:21px}
+
+/* controls */
+.controls{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;font-family:var(--f-cond);z-index:20}
+.controls button{font:500 15px var(--f-cond);color:var(--ink);background:var(--paper);border:1px solid var(--ink);padding:6px 12px;cursor:pointer;min-height:34px;white-space:nowrap}
+.controls button:hover{background:var(--tint)}
+.controls .count{min-width:64px;text-align:center;color:var(--mid);font-variant-numeric:tabular-nums}
+.controls .hint{color:var(--mid);font-size:13px}
+@media (max-width:900px){.controls .hint{display:none}}
+
+/* entrance motion */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.on .rise{animation:rise .45s var(--ease) both;animation-delay:calc(var(--i,0) * 140ms + 120ms)}
+@keyframes travel{0%{left:6px;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 16px);opacity:0}}
+.on .packet{animation:travel 1.1s var(--ease) both;animation-delay:calc(var(--i) * 260ms + 300ms)}
+.loop path.ln{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s var(--ease)}
+.loop.shown path.ln{stroke-dashoffset:0}
+.loop .hd,.loop p{opacity:0;transition:opacity .3s ease .7s}
+.loop.shown .hd,.loop.shown p{opacity:1}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.loop path.ln{stroke-dashoffset:0}.mini i{transform:none}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+<!-- live map layer -->
+<div class="mapwrap" id="mapwrap" aria-hidden="true">
+  <svg id="map" role="img" aria-label="Map of Greater Brisbane SA2s"></svg>
+  <div class="callouts" id="callouts"></div>
+  <div class="legend" id="legend"></div>
+</div>
+<div class="tip" id="tip"></div>
+
+<section class="slide cover" data-map="outline" data-meta="Cover|ABS 2021 Census, OSM|EPSG:4326" aria-label="Cover">
+  <div class="body" style="top:40px">
+    <div class="left">
+      <h1>City profile of Greater Brisbane</h1>
+      <div>
+        <h3 class="sub">Metadata</h3>
+        <dl class="record">
+          <div><dt>Abstract</dt><dd>A mini digital infrastructure that lets anyone discover, access and use SA2 data, used to measure seven city profile indicators and link them to SDG targets.</dd></div>
+          <div><dt>Point of contact</dt><dd>Group 2: Elvis Lin, Phuc Hung Nguyen, Eliza Wu, Yanfei Zhang</dd></div>
+          <div><dt>Subject</dt><dd>GEOM30014 Integrating Digital Infrastructure</dd></div>
+          <div><dt>Date</dt><dd>13 November 2026</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-meta="Background|—|—" aria-label="Background">
+  <h2 class="title">Background</h2>
+  <div class="body"><div class="bg">
+    <div class="pts">
+      <div class="pt rise" style="--i:0"><h3>Many sources</h3><p>City indicators need Census tables, homelessness estimates and OpenStreetMap data</p></div>
+      <div class="pt rise" style="--i:1"><h3>Held separately</h3><p>Each source sits in a different place and format, and is hard to find</p></div>
+      <div class="pt rise" style="--i:2"><h3>No group can do it alone</h3><p>Each group supplies one theme for all of Australia, and needs the others’ data for its own city</p></div>
+    </div>
+    <div data-step="1">
+      <h3 class="sub2">Where our seven indicators come from</h3>
+      <table class="st"><thead><tr><th scope="col">#</th><th scope="col">Indicator</th><th scope="col">Data source</th><th scope="col">Supplied by</th></tr></thead><tbody>
+        <tr><td class="n">1</td><td>Household income</td><td>Census (HIND)</td><td class="sup">Group 1</td></tr>
+        <tr class="us"><td class="n">2</td><td>Employment rate</td><td>Census (LFHRP)</td><td class="sup">Group 2 (us)</td></tr>
+        <tr><td class="n">3</td><td>Homelessness</td><td>ABS homelessness</td><td class="sup">Group 4</td></tr>
+        <tr class="us"><td class="n">4</td><td>Chronic conditions</td><td>Census (CLTHP)</td><td class="sup">Group 2 (us)</td></tr>
+        <tr><td class="n">5</td><td>Gender pay gap</td><td>Census (INCP)</td><td class="sup">Group 1</td></tr>
+        <tr><td class="n">6</td><td>Green area per capita</td><td>OpenStreetMap</td><td class="sup">Teaching team</td></tr>
+        <tr><td class="n">7</td><td>Hospital service area</td><td>OpenStreetMap</td><td class="sup">Teaching team</td></tr>
+      </tbody></table>
+      <p class="takeaway">5 of our 7 indicators depend on data that other groups or the teaching team publish.</p>
+    </div>
+  </div></div>
+</section>
+
+<section class="slide" data-meta="Purpose and role|—|—" aria-label="Purpose and our role">
+  <h2 class="title">Purpose and our role</h2>
+  <div class="body">
+    <h3 class="sub2">Purpose: make shared data usable for a city profile</h3>
+    <ol class="pflow">
+      <li class="rise" style="--i:0"><h4>Discover</h4><p>Find any group’s layer through the IDI tag in the Digital Twin</p></li>
+      <li class="rise" style="--i:1"><h4>Access</h4><p>Open, standard web services: WFS and WMS from GeoServer, in EPSG:4326</p></li>
+      <li class="rise" style="--i:2"><h4>Use</h4><p>Calculate 7 SA2-level indicators and link them to SDG targets</p></li>
+    </ol>
+    <div data-step="1"><h3 class="sub2">Our role in Group 2</h3>
+      <div class="roles">
+        <div class="role sup"><h4>Supplier</h4><p>LFHRP (labour force) and CLTHP (chronic health) counts for every SA2 in Australia</p><p class="mut">Published on GeoServer and tagged IDI so every group can use them</p></div>
+        <div class="role"><h4>Analyst</h4><p>City profile of Greater Brisbane: 246 SA2s and 7 indicators</p><p class="mut">Built from layers shared by Groups 1, 2 and 4 and the teaching team</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-meta="System architecture|ma_db, g2_bris, g2_results|7856, 4326" aria-label="Our mini digital infrastructure">
+  <h2 class="title">Our mini digital infrastructure</h2>
+  <div class="body">
+    <div class="pipe">
+      <div class="node rise" style="--i:0"><h3>Sources</h3><p>ABS Census 2021, ASGS Ed. 3 SA2 boundaries, OpenStreetMap</p></div>
+      <div class="link"><span>CSV, SHP</span><i class="packet" style="--i:0"></i></div>
+      <div class="node rise" style="--i:1"><h3>QGIS / Jupyter</h3><p>Clean, join, analyse; areas in EPSG:7856</p></div>
+      <div class="link"><span>DB import</span><i class="packet" style="--i:1"></i></div>
+      <div class="node rise" style="--i:2"><h3>PostGIS</h3><p>ma_db database, one table per layer</p></div>
+      <div class="link"><span>PostGIS store</span><i class="packet" style="--i:2"></i></div>
+      <div class="node rise" style="--i:3"><h3>GeoServer</h3><p>g2_bris, g2_results; WMS and WFS in EPSG:4326</p></div>
+      <div class="link"><span>WFS harvest</span><i class="packet" style="--i:3"></i></div>
+      <div class="node dt rise" style="--i:4"><h3>Digital Twin</h3><p>Metadata, IDI tag, Story Map</p></div>
+    </div>
+    <div class="loop" data-step="1">
+      <svg viewBox="0 0 1168 90" preserveAspectRatio="none"><path class="ln" d="M1086 0 V62 H310 V10" pathLength="1"/><path class="hd" d="M303 14 L310 1 L317 14 Z"/></svg>
+      <p>Other groups find our layers by the IDI tag and load them over WFS; we load theirs the same way. That loop is the infrastructure.</p>
+    </div>
+    <div class="spec" data-step="2"><h3 class="sub">Specification</h3><dl>
+      <div><dt>Spatial unit</dt><dd>SA2, ASGS Edition 3 (2021), 246 in Greater Brisbane</dd></div>
+      <div><dt>Coordinate systems</dt><dd>EPSG:7856 to measure; EPSG:4326 to publish</dd></div>
+      <div><dt>Access</dt><dd>WMS for maps, WFS for features; no login</dd></div>
+      <div><dt>Discovery</dt><dd>Every layer tagged IDI, with full metadata</dd></div>
+    </dl></div>
+  </div>
+</section>
+
+<section class="slide" data-meta="Live demo|idigitaltwin.org|EPSG:4326" aria-label="Live demo">
+  <h2 class="title">Live demo</h2>
+  <div class="body"><div class="demo">
+    <div><ol class="steps">
+      <li data-step="1"><span><b>Find</b>: search the IDI tag in the Digital Twin Data Explorer</span></li>
+      <li data-step="2"><span><b>Inspect</b>: open the metadata record and its attribute descriptions</span></li>
+      <li data-step="3"><span><b>Use</b>: open the Greater Brisbane Story Map</span></li>
+    </ol>
+    <a class="btn" href="https://idigitaltwin.org/" target="_blank" rel="noopener">Open the Digital Twin</a></div>
+    <figure class="shot"><img src="img/demo.webp" alt="Digital Twin metadata records for Group 2 Indicators 1 and 2"><figcaption>Fallback screenshots, in case the live system is slow.</figcaption></figure>
+  </div></div>
+</section>
+
+<section class="slide" data-meta="Data supplied|g2_bris (LFHRP, CLTHP)|EPSG:4326" aria-label="Data we supplied">
+  <h2 class="title">Data we supplied</h2>
+  <div class="body">
+    <div class="sup2">
+      <div class="card rise" style="--i:0"><h3>LFHRP</h3><p>ABS 2021 labour force status counts</p><p class="src" style="margin-top:8px">Built by Elvis and Henry</p></div>
+      <div class="card rise" style="--i:1"><h3>CLTHP</h3><p>ABS 2021 chronic health condition counts</p><p class="src" style="margin-top:8px">Built by Yanfei and Eliza</p></div>
+    </div>
+    <dl class="facts" data-step="1">
+      <div><dt>Coverage</dt><dd>Every SA2 in Australia; ASGS Edition 3</dd></div>
+      <div><dt>Pipeline</dt><dd>PostGIS ma_db → GeoServer → Digital Twin (IDI)</dd></div>
+      <div><dt>Phase 1 rule</dt><dd>Raw counts only, so any group can derive its own rates</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="slide ind" data-map="i1" data-meta="Ind. 1 Income|g2_bris_indicator1_income_2021|EPSG:4326" aria-label="Indicator 1">
+  <h2 class="title">Indicator 1 – Median household income</h2>
+  <div class="body"><div class="left">
+    <div><p class="lab">Measure</p><p class="txt">Estimated median weekly household income; grouped-band interpolation</p></div>
+    <div><p class="lab">Pattern</p><ul class="bul txt"><li>Fig Tree Pocket ≈ $3,799 a week</li><li>Southern Moreton Bay Islands ≈ $760 a week</li><li>239 estimates; 7 SA2s with no data</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 10.2</b> Social and economic inclusion of all, irrespective of income (proxy, not indicator 10.2.1)</p><p><b>SDG 1.2</b> Reduce the share of people living in poverty</p></div>
+    <p class="src">Source: Group 1, ABS 2021 Census G33 household income counts (found via the IDI tag); Group 3 G02 medians used as a check</p>
+  </div></div>
+</section>
+
+<section class="slide ind" data-map="i2" data-meta="Ind. 2 Employment|g2_bris_indicator2_employment_2021|EPSG:4326" aria-label="Indicator 2">
+  <h2 class="title">Indicator 2 – Employment rate</h2>
+  <div class="body"><div class="left">
+    <div><p class="lab">Measure</p><p class="txt">Employed persons ÷ population aged 15+ × 100; all employed categories</p></div>
+    <div><p class="lab">Pattern</p><ul class="bul txt"><li>Highest: Norman Park 75.85%</li><li>Lowest: Southern Moreton Bay Islands 26.94%</li><li>Low island rates call for an age-aware review of access to work</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 8.5</b> Full and productive employment and decent work for all (proxy, not indicator 8.5.2)</p><p><b>SDG 10.2</b> Inclusion of all</p></div>
+    <p class="src">Source: Group 2 (our Phase 1 layer), g2_bris:g2_indicator2_lfhrp_sa2_2021 (ABS 2021 Census LFHRP); Group 3 G43 rates used as a check</p>
+  </div></div>
+</section>
+
+<section class="slide" data-meta="Workflow, Ind. 3–4|g4_syd, g2_bris layers|EPSG:4326" aria-label="Workflow for indicators 3 and 4">
+  <h2 class="title">From shared data to indicators (3–4)</h2>
+  <div class="body">
+    <ol class="flow">
+      <li class="rise" style="--i:0"><span class="sn">Discover</span><b>Digital Twin</b><span>Find inputs by IDI tag</span></li>
+      <li class="rise" style="--i:1"><span class="sn">Load</span><b>Jupyter</b><span>Read layers via WFS into PostGIS</span></li>
+      <li class="rise" style="--i:2"><span class="sn">Calculate</span><b>SQL</b><span>Rates from counts in PostGIS</span></li>
+      <li class="rise" style="--i:3"><span class="sn">Style</span><b>SLD</b><span>Unit legends; flag small SA2s</span></li>
+      <li class="rise" style="--i:4"><span class="sn">Publish</span><b>GeoServer + DT</b><span>g2_results; harvest and describe in DT</span></li>
+    </ol>
+    <div class="used" data-step="1"><h3 class="sub">Data used</h3><dl>
+      <div><dt>Ind 3</dt><dd>Group 4 – g4_syd:sa2_homelessness_2021 (ABS Estimating Homelessness 2021 + Census G01)</dd></div>
+      <div><dt>Ind 4</dt><dd>Group 2 – g2_bris:g2_indicator4_clthp_sa2_2021 (ABS 2021 Census CLTHP; our own Phase 1 layer)</dd></div>
+    </dl><p class="nb">Both indicators are ratios of counts, so they stay in EPSG:4326 throughout.</p></div>
+  </div>
+</section>
+
+<section class="slide ind" data-map="i3" data-meta="Ind. 3 Homelessness|g2_bris_indicator3_homelessness_2021|EPSG:4326" aria-label="Indicator 3">
+  <h2 class="title">Indicator 3 – Homelessness rate</h2>
+  <div class="body"><div class="left">
+    <div><p class="lab">Formula</p><p class="txt">Homeless persons ÷ total population × 100,000</p></div>
+    <div><p class="lab">Pattern</p><ul class="bul small"><li>Greater Brisbane: 358 per 100,000; typical SA2 is 249 (median of 237 SA2s with 1,000+ residents)</li><li>13 SA2s exceed 1,000 per 100k and hold 24% of all homeless people</li><li>Highest: Spring Hill ≈ 5,904 (405 people)</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 11.1</b> Adequate, safe and affordable housing for all (proxy, not indicator 11.1.1)</p><p><b>SDG 1.4</b> Equal access to basic services</p></div>
+    <p class="src">Source: Group 4, g4_syd:sa2_homelessness_2021 (ABS Estimating Homelessness 2021, Table 5.3; Census G01 population)</p>
+  </div></div>
+</section>
+
+<section class="slide ind" data-map="i4" data-meta="Ind. 4 Health|g2_bris_indicator4_health_2021|EPSG:4326" aria-label="Indicator 4">
+  <h2 class="title">Indicator 4 – One or no chronic conditions</h2>
+  <div class="body"><div class="left">
+    <div><p class="lab">Formula</p><p class="txt">(Persons with 0 + 1 condition) ÷ total persons × 100</p></div>
+    <div><p class="lab">Pattern</p><ul class="bul txt"><li>Greater Brisbane: 83.3%; typical SA2 84.7%</li><li>Highest: Rochedale–Burbank 92.4%</li><li>Lowest: Southern Moreton Bay Islands 68.0%; low values cluster in Moreton Bay North, Logan and Ipswich</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 3.4</b> Reduce premature mortality from non-communicable diseases (proxy, not indicator 3.4.1)</p><p><b>SDG 3.8</b> Universal health coverage</p></div>
+    <p class="src">Source: Group 2 (our Phase 1 layer), g2_bris:g2_indicator4_clthp_sa2_2021 (ABS 2021 Census CLTHP)</p>
+  </div></div>
+</section>
+
+<section class="slide" data-meta="Ind. 1 and 3|Indicators 1 and 3|EPSG:4326" aria-label="Lower income, higher homelessness">
+  <h2 class="title">Lower income, higher homelessness</h2>
+  <div class="body">
+    <div class="sc" id="scatter"></div>
+    <ul class="bul txt scr" data-step="1" style="display:grid;gap:14px">
+      <li>Each dot is one SA2 (237 with 1,000+ residents); hover to see which</li>
+      <li>Clear negative link: rank correlation −0.54</li>
+      <li>Most SA2s above 1,000 per 100,000 earn under $2,100 a week</li>
+      <li>Link: SDG 11.1 housing, SDG 10.2 inclusion</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" data-meta="Workflow, Ind. 5–7|g1_act, idi_ma layers|EPSG:7856" aria-label="Workflow for indicators 5 to 7">
+  <h2 class="title">From shared data to indicators (5–7)</h2>
+  <div class="body">
+    <ol class="flow">
+      <li class="rise" style="--i:0"><span class="sn">Discover</span><b>Digital Twin</b><span>Find inputs by IDI tag</span></li>
+      <li class="rise" style="--i:1"><span class="sn">Load</span><b>QGIS</b><span>Load layers via WFS</span></li>
+      <li class="rise" style="--i:2"><span class="sn">Calculate</span><b>EPSG:7856</b><span>Areas and buffers in metres</span></li>
+      <li class="rise" style="--i:3"><span class="sn">Store</span><b>PostGIS</b><span>ma_db database</span></li>
+      <li class="rise" style="--i:4"><span class="sn">Publish</span><b>GeoServer + DT</b><span>g2_results; harvest and describe in DT</span></li>
+    </ol>
+    <div class="used" data-step="1"><h3 class="sub">Data used</h3><dl>
+      <div><dt>Ind 5</dt><dd>Group 1 – g1_act:g17_sa2_personal_income_2021_sex (ABS 2021 Census G17)</dd></div>
+      <div><dt>Ind 6</dt><dd>Teaching Team – idi_ma:greenspace_brisbane (OSM) + population from our Indicator 2 layer</dd></div>
+      <div><dt>Ind 7</dt><dd>Teaching Team – idi_ma:health (OSM), filtered to hospitals</dd></div>
+    </dl></div>
+  </div>
+</section>
+
+<section class="slide ind" data-map="i5" data-meta="Ind. 5 Pay gap|g2_bris_indicator5_paygap_2021|EPSG:4326" aria-label="Indicator 5">
+  <h2 class="title">Indicator 5 – Gender pay gap</h2>
+  <div class="body"><div class="left">
+    <div><p class="lab">Formula</p><p class="txt">(Male − female average weekly income) ÷ male × 100</p></div>
+    <div><p class="lab">Findings</p><ul class="bul txt"><li>Women earn less in every SA2: 11.9–38.4%</li><li>Typical SA2 gap is 24.9% (median)</li><li>Widest in wealthy western suburbs</li></ul></div>
+    <div><p class="lab">Method</p><ul class="bul small"><li>Band midpoints from G17 income counts ($3,500+ set at $5,250)</li><li>Nil, negative and not-stated incomes excluded</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 8.5</b> Equal pay for work of equal value (proxy, not indicator 8.5.1)</p><p><b>SDG 5.1</b> End discrimination against women</p></div>
+    <p class="src">Source: Group 1, g1_act:g17_sa2_personal_income_2021_sex (ABS 2021 Census G17)</p>
+  </div></div>
+</section>
+
+<section class="slide ind" data-map="i6" data-meta="Ind. 6 Green area|g2_bris_indicator6_green_2021|EPSG:4326" aria-label="Indicator 6">
+  <h2 class="title">Indicator 6 – Green area per capita</h2>
+  <div class="body"><div class="left">
+    <div><p class="lab">Formula</p><p class="txt">Green space area (m²) ÷ SA2 population</p></div>
+    <div><p class="lab">Findings</p><ul class="bul txt"><li>Typical SA2: 139 m² per person</li><li>Inner suburbs lowest: Fortitude Valley 3 m²</li><li>Highest: islands and bushland, few residents</li></ul></div>
+    <div><p class="lab">Method</p><ul class="bul small"><li>Public green space only; golf, pitches, cemeteries and private land excluded</li><li>Overlapping OSM polygons dissolved; areas in EPSG:7856</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 11.7</b> Universal access to safe, inclusive green and public spaces (proxy, not indicator 11.7.1)</p></div>
+    <p class="src">Source: Teaching Team, idi_ma:greenspace_brisbane (OSM); population from our Indicator 2 layer</p>
+  </div></div>
+</section>
+
+<section class="slide ind" data-map="i7" data-meta="Ind. 7 Hospitals|g2_bris_indicator7_hospital_2021|EPSG:4326" aria-label="Indicator 7">
+  <h2 class="title">Indicator 7 – Hospital service area</h2>
+  <div class="body"><div class="left">
+    <div><p class="lab">Formula</p><p class="txt">Area within 3 km of a hospital ÷ SA2 area × 100</p></div>
+    <div><p class="lab">Findings</p><ul class="bul txt"><li>52 of 246 SA2s fully covered; 61 have none</li><li>Median coverage 31%</li><li>Bayside and outer SA2s poorest</li></ul></div>
+    <div><p class="lab">Method</p><ul class="bul small"><li>OSM hospitals, including those just outside Greater Brisbane</li><li>3 km buffers merged and intersected with SA2s in EPSG:7856</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 3.8</b> Universal health coverage and access to essential health services (proxy, not indicator 3.8.1)</p></div>
+    <p class="src">Source: Teaching Team, idi_ma:health (OSM)</p>
+  </div></div>
+</section>
+
+<section class="slide syn" data-map="count" data-meta="SDG synthesis|All seven g2_results layers|—" aria-label="What our indicators mean for the SDGs">
+  <h2 class="title">What our indicators mean for the SDGs</h2>
+  <div class="body"><div class="left">
+    <div class="fd" data-step="1"><h3>The same places fall behind on several targets</h3>
+      <p class="small">Woodridge is in Brisbane’s worst quarter on 6 of 7 indicators; Inala–Richlands, Ipswich–East and Redcliffe on 5</p>
+      <p class="t">SDG 1.2, 8.5, 10.2 and 3.4 are furthest off track in the Logan–Ipswich–Redcliffe belt</p></div>
+    <div class="fd" data-step="2"><h3>The pay gap is widest in the richest suburbs</h3>
+      <div class="mini" aria-label="Median pay gap by household income quarter: 21.5, 24.0, 25.7, 29.7 percent">
+        <div><i style="--h:43px"></i><span><b>21.5%</b> lowest</span></div><div><i style="--h:56px"></i><span><b>24.0%</b></span></div><div><i style="--h:65px"></i><span><b>25.7%</b></span></div><div><i class="hi" style="--h:86px"></i><span><b>29.7%</b> highest</span></div></div>
+      <p class="t">Higher incomes alone will not deliver equal pay (SDG 8.5, 5.1)</p></div>
+    <div class="fd" data-step="3"><h3>Green space and hospitals are in different places</h3>
+      <p class="small">Median green space: 43 m² per person where an SA2 is fully covered by hospitals, 426 m² where it has none</p>
+      <p class="t">SDG 11.7 and 3.8 need different fixes in the inner city and the outer suburbs</p></div>
+  </div></div>
+</section>
+
+<section class="slide" data-meta="Challenges|—|—" aria-label="Challenges and how we solved them">
+  <h2 class="title">Challenges and how we solved them</h2>
+  <div class="body"><table class="chal"><thead><tr><th scope="col">Challenge</th><th scope="col">How we solved it</th></tr></thead><tbody>
+    <tr class="rise" style="--i:0"><th scope="row">National SA2 files too large to edit in QGIS</th><td>Loaded into PostGIS, queried Greater Brisbane only</td></tr>
+    <tr class="rise" style="--i:1"><th scope="row">Census tables and boundaries did not join</th><td>Matched on cleaned 2021 SA2 codes</td></tr>
+    <tr class="rise" style="--i:2"><th scope="row">Inconsistent OSM green-space tags</th><td>Filtered to an agreed list of park and reserve tags</td></tr>
+    <tr class="rise" style="--i:3"><th scope="row">Layers hard to find among all groups</th><td>Tagged every published layer with IDI</td></tr>
+    <tr class="rise" style="--i:4"><th scope="row">Grouped income and small populations</th><td>Estimate medians; keep nulls; flag small SA2s</td></tr>
+    <tr class="rise" style="--i:5"><th scope="row">Overlapping OSM green-space polygons</th><td>Dissolved before measuring, so no area is counted twice</td></tr>
+    <tr class="rise" style="--i:6"><th scope="row">Near-empty SA2s distorted map classes</th><td>Set to NULL below 100 residents</td></tr>
+  </tbody></table></div>
+</section>
+
+<section class="slide ex" data-map="i1" data-explore data-meta="Map explorer|All seven g2_results layers|EPSG:4326" aria-label="Map explorer for questions">
+  <h2 class="title">Map explorer</h2>
+  <div class="body"><div class="left">
+    <p class="small" style="color:var(--mid)">For questions: press 1–7 to switch indicator, or 0 for the SDG overlap. Hover any SA2, or find one by name.</p>
+    <div class="tabs" id="tabs"></div>
+    <div class="find"><label for="find">Find an SA2</label><div class="combo"><button type="button" class="clear" id="clear" aria-label="Clear search" hidden>×</button><input id="find" role="combobox" aria-expanded="false" aria-controls="sa2list" aria-autocomplete="list" placeholder="Type a suburb, e.g. Woodridge" autocomplete="off"><ul id="sa2list" role="listbox" hidden></ul></div></div>
+    <p class="readout" id="readout" aria-live="polite"></p>
+  </div></div>
+</section>
+
+<dl class="meta" id="meta" aria-label="Slide metadata"><div><dt>Topic</dt><dd id="m1"></dd></div><div><dt>Layer or source</dt><dd id="m2"></dd></div><div><dt>CRS</dt><dd id="m3"></dd></div><div><dt>Slide</dt><dd id="m4"></dd></div></dl>
+</div>
+
+<nav class="controls" aria-label="Slide controls">
+  <button type="button" id="prev">Previous</button>
+  <span class="count" id="count" aria-live="polite"></span>
+  <button type="button" id="next">Next</button>
+  <button type="button" id="fs">Full screen</button>
+  <span class="hint">→ or space to step · F full screen · E map explorer</span>
+</nav>
+
+<script>
+(async function(){
+  const stage=document.getElementById('stage'), slides=[...document.querySelectorAll('.slide')], N=slides.length;
+  const wrap=document.getElementById('mapwrap'), svg=document.getElementById('map'), legend=document.getElementById('legend'), callouts=document.getElementById('callouts'), tip=document.getElementById('tip');
+  const NS='http://www.w3.org/2000/svg';
+  let cur=0, step=0;
+
+  /* ---------- indicator definitions (classes match the published SLD styles) ---------- */
+  const IND={
+    i1:{k:0,name:'Median household income',unit:'$/week',fmt:v=>'$'+Math.round(v).toLocaleString('en-AU'),q:true,cols:['#C7E9B4','#7FCDBB','#41B6C4','#2C7FB8','#253494'],hl:['Fig Tree Pocket','Southern Moreton Bay Islands']},
+    i2:{k:1,name:'Employment rate',unit:'% of persons 15+',fmt:v=>v.toFixed(1)+'%',br:[53.5,61.0,64.6,68.6],cols:['#EDF8E9','#BAE4B3','#74C476','#31A354','#006D2C'],hl:['Norman Park','Southern Moreton Bay Islands']},
+    i3:{k:2,name:'Homelessness',unit:'per 100,000',fmt:v=>Math.round(v).toLocaleString('en-AU'),br:[109,193,308,514],cols:['#FAE5DB','#F8B69D','#F87C61','#DF4842','#AE2F34'],hl:['Spring Hill']},
+    i4:{k:3,name:'One or no chronic conditions',unit:'% of persons',fmt:v=>v.toFixed(1)+'%',br:[79.0,83.5,85.8,87.6],cols:['#F9B675','#FAE198','#DBED98','#9DD274','#38A366'],hl:['Rochedale - Burbank','Southern Moreton Bay Islands']},
+    i5:{k:4,name:'Gender pay gap',unit:'%',fmt:v=>v.toFixed(1)+'%',br:[15,20,25,30,35],cols:['#FFF5F0','#FDCCB8','#FC8F6F','#F44D38','#C5161C','#67000D'],hl:['Westlake','Southern Moreton Bay Islands']},
+    i6:{k:5,name:'Green area per capita',unit:'m² per person',fmt:v=>v<1000?Math.round(v)+' m²':Math.round(v).toLocaleString('en-AU')+' m²',br:[44,98,186,531],cols:['#F7FCF5','#C9EAC2','#7BC77C','#2A924B','#00441B'],hl:['Fortitude Valley']},
+    i7:{k:6,name:'Hospital service area',unit:'% of SA2 area within 3 km',fmt:v=>v.toFixed(0)+'%',br:[20,40,60,80],cols:['#F7FBFF','#C8DCF0','#73B2D8','#2979B9','#08306B'],hl:['Birkdale','Ipswich - Central']},
+    count:{name:'Indicators in the worst quarter',unit:'of 7',fmt:v=>v+' of 7',br:[1,2,3,4,5],cols:['#F4F6F6','#DCE6EE','#B3C9DD','#7DA3C6','#3F75AC','#1F4E85'],lab:['0','1','2','3','4','5–6'],hl:['Woodridge','Inala - Richlands','Redcliffe']}
+  };
+  const ORDER=['i1','i2','i3','i4','i5','i6','i7'];
+
+  /* ---------- data ---------- */
+  let D;
+  try{ D=await fetch('sa2.json').then(r=>r.json()); }catch(e){ D=null; }
+  const feats=D?D.f:[];
+  // worst-quarter count (same rules as the SDG slide)
+  const dir=[-1,-1,1,-1,1,-1,0];
+  const thr=dir.map((d,k)=>{ if(d===0) return 0;
+    const v=feats.filter(f=>f.v[k]!=null && !(k===2 && f.p<1000)).map(f=>f.v[k]).sort((a,b)=>a-b);
+    return d<0? v[Math.floor(.25*(v.length-1))] : v[Math.floor(.75*(v.length-1))]; });
+  feats.forEach(f=>{ let c=0; dir.forEach((d,k)=>{ const v=f.v[k]; if(v==null) return; if(k===2 && f.p<1000) return;
+     if(d===0? v===0 : d<0? v<=thr[k] : v>=thr[k]) c++; }); f.cnt=c; });
+  // quintiles for indicator 1
+  { const v=feats.map(f=>f.v[0]).filter(x=>x!=null).sort((a,b)=>a-b); IND.i1.br=[.2,.4,.6,.8].map(q=>v[Math.floor(q*v.length)]); }
+
+  /* ---------- draw map ---------- */
+  if(D){
+    svg.setAttribute('viewBox',`0 0 ${D.w} ${D.h}`);
+    const g=document.createElementNS(NS,'g');
+    feats.forEach((f,i)=>{ const p=document.createElementNS(NS,'path'); p.setAttribute('d',f.d); p.setAttribute('class','sa2'); p.dataset.i=i; f.el=p; g.appendChild(p); });
+    svg.appendChild(g);
+  }
+  let mode=null, pinned=null;
+  const val=(f,m)=> m==='count'? f.cnt : f.v[IND[m].k];
+  function colour(m,v){ if(v==null) return getComputedStyle(document.documentElement).getPropertyValue('--nodata'); const d=IND[m]; let c=0; while(c<d.br.length && v>=d.br[c]) c++; return d.cols[c]; }
+  function legendHTML(m){
+    const d=IND[m], cols=d.cols, br=d.br; let rows='';
+    for(let i=0;i<cols.length;i++){
+      let lab; if(d.lab) lab=d.lab[i]; else { const lo=i===0?null:br[i-1], hi=i<br.length?br[i]:null;
+        lab= lo==null? 'under '+d.fmt(hi) : hi==null? d.fmt(lo)+' +' : d.fmt(lo)+' – '+d.fmt(hi); }
+      rows+=`<li><span class="sw" style="background:${cols[i]}"></span><span>${lab}</span></li>`; }
+    if(m!=='count') rows+=`<li><span class="sw" style="background:var(--nodata)"></span><span>No data</span></li>`;
+    return `<h4>${d.name}</h4><p class="note" style="margin:-4px 0 8px">${d.unit}</p><ul>${rows}</ul>`+(m==='count'?'<p class="note">Worst quarter = weakest 25% of SA2s on each indicator</p>':'<p class="note">Hover an SA2 for its value</p>');
+  }
+  function setMap(m){
+    if(!D) return;
+    if(m==='outline'){ wrap.classList.add('outline'); legend.innerHTML=''; mode=m; return; }
+    wrap.classList.remove('outline');
+    if(m===mode) return; mode=m;
+    feats.forEach(f=>{ f.el.style.fill=colour(m,val(f,m)); f.el.classList.remove('hl'); });
+    legend.innerHTML=legendHTML(m);
+  }
+  function showCallouts(names,near){
+    callouts.innerHTML=''; if(!D||!names) return;
+    const box=svg.getBoundingClientRect(), wb=wrap.getBoundingClientRect(), sc=(wb.width/wrap.offsetWidth)||1, s=box.width/D.w;
+    const W=wrap.offsetWidth, colX=W-186;
+    const pts=[]; names.forEach(n=>{ const f=feats.find(x=>x.n===n); if(!f) return; f.el.classList.add('hl');
+      const bb=f.el.getBBox(); pts.push({f,n,x:(bb.x+bb.width/2)*s/sc+(box.left-wb.left)/sc, y:(bb.y+bb.height/2)*s/sc+(box.top-wb.top)/sc}); });
+    pts.sort((a,b)=>a.y-b.y);
+    const showLegend=legend.style.display!=='none';
+    let y=(showLegend? legend.offsetTop+(wrap.classList.contains('ex')?legend.offsetHeight/2:legend.offsetHeight)+28 : 20);
+    const ls=document.createElementNS(NS,'svg'); ls.setAttribute('class','leaders'); callouts.appendChild(ls);
+    if(near && pts.length===1){ const p=pts[0], v=val(p.f,mode);
+      const el=document.createElement('div'); el.className='co near'; el.innerHTML=`${p.n.replace(' - ','–')}<small>${v==null?'no data':IND[mode].fmt(v)}</small>`; callouts.appendChild(el);
+      const w=el.offsetWidth, h=el.offsetHeight, lh=legend.offsetHeight;
+      let lx=p.x+26, left=false; if(lx+w>W-4 || (lx+w>colX-8 && p.y<lh+20)){ lx=p.x-26-w; left=true; }
+      const ty=Math.max(4,p.y-h/2); el.style.left=lx+'px'; el.style.top=ty+'px'; if(left) el.classList.add('flip');
+      const ln=document.createElementNS(NS,'line'); ln.setAttribute('x1',left?lx+w+4:lx-4); ln.setAttribute('y1',ty+h/2); ln.setAttribute('x2',p.x); ln.setAttribute('y2',p.y); ln.setAttribute('pathLength','1'); ls.appendChild(ln);
+      const c=document.createElementNS(NS,'circle'); c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r',4); ls.appendChild(c);
+      requestAnimationFrame(()=>{el.classList.add('shown'); ls.classList.add('shown');}); return; }
+    pts.forEach(p=>{ const v=val(p.f,mode);
+      const el=document.createElement('div'); el.className='co'; el.style.left=colX+'px'; el.style.top=y+'px';
+      el.innerHTML=`${p.n.replace(' - ','–')}<small>${v==null?'no data':IND[mode].fmt(v)}</small>`; callouts.appendChild(el);
+      const ly=y+el.offsetHeight/2;
+      const ln=document.createElementNS(NS,'line'); ln.setAttribute('x1',colX-4); ln.setAttribute('y1',ly); ln.setAttribute('x2',p.x); ln.setAttribute('y2',p.y); ln.setAttribute('pathLength','1'); ls.appendChild(ln);
+      const c=document.createElementNS(NS,'circle'); c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r',4); ls.appendChild(c);
+      y+=el.offsetHeight+14; requestAnimationFrame(()=>el.classList.add('shown')); });
+    requestAnimationFrame(()=>ls.classList.add('shown'));
+  }
+  // hover readout
+  svg.addEventListener('mousemove',e=>{ const t=e.target; if(!t.classList.contains('sa2')||mode==='outline'||!mode){tip.classList.remove('shown');return;}
+    const f=feats[+t.dataset.i], v=val(f,mode), r=stage.getBoundingClientRect(), s=r.width/1280;
+    tip.innerHTML=`<b>${f.n}</b>${v==null?'No data':IND[mode].fmt(v)} · ${f.p.toLocaleString('en-AU')} residents`;
+    tip.style.left=((e.clientX-r.left)/s+14)+'px'; tip.style.top=((e.clientY-r.top)/s+14)+'px'; tip.classList.add('shown');
+    if(slides[cur].hasAttribute('data-explore') && !pinned) readout(f); });
+  svg.addEventListener('mouseleave',()=>tip.classList.remove('shown'));
+
+  /* ---------- map placement per slide ---------- */
+  const POS={ind:{l:676,t:112,w:574,h:530}, cover:{l:800,t:60,w:400,h:552}, syn:{l:690,t:112,w:560,h:530}, ex:{l:600,t:44,w:650,h:572}};
+  function place(p){ wrap.classList.toggle('ex',p===POS.ex); wrap.style.left=p.l+'px'; wrap.style.top=p.t+'px'; wrap.style.width=p.w+'px'; wrap.style.height=p.h+'px';
+    legend.style.display=p===POS.cover?'none':'block'; }
+
+  /* ---------- scatter ---------- */
+  (function(){ const host=document.getElementById('scatter'); if(!D) return;
+    const pts=feats.filter(f=>f.p>=1000 && f.v[0]!=null && f.v[2]!=null);
+    const W=700,H=500,L=70,B=60,T=10,R=20, x0=700,x1=4000;
+    const X=v=>L+(v-x0)/(x1-x0)*(W-L-R), Y=v=>{const t=Math.log10(v+10);return H-B-(t-1)/(Math.log10(10000)-1)*(H-B-T)};
+    let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter of median weekly household income against homelessness per 100,000 for ${pts.length} SA2s">`;
+    [0,100,300,1000,3000].forEach(v=>{const y=Y(v);s+=`<line class="gr" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-8}" y="${y+5}" text-anchor="end">${v.toLocaleString('en-AU')}</text>`});
+    [1000,1500,2000,2500,3000,3500].forEach(v=>{const x=X(v);s+=`<text x="${x}" y="${H-B+24}" text-anchor="middle">$${v.toLocaleString('en-AU')}</text>`});
+    s+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/><line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/>`;
+    s+=`<text class="at" x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle">Median weekly household income</text><text class="at" transform="translate(16 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle">Homeless per 100,000 (log scale)</text>`;
+    pts.forEach(f=>{ s+=`<circle class="dot" cx="${X(f.v[0]).toFixed(1)}" cy="${Y(f.v[2]).toFixed(1)}" r="5.5"><title>${f.n}: $${Math.round(f.v[0]).toLocaleString('en-AU')}/week, ${Math.round(f.v[2]).toLocaleString('en-AU')} per 100,000</title></circle>` });
+    host.innerHTML=s+'</svg>'; })();
+
+  /* ---------- explorer ---------- */
+  const tabs=document.getElementById('tabs'), ro=document.getElementById('readout');
+  [...ORDER,'count'].forEach((m,i)=>{ const b=document.createElement('button'); b.type='button'; b.dataset.m=m;
+    b.innerHTML=`<kbd>${m==='count'?0:i+1}</kbd><span>${IND[m].name}</span>`; b.onclick=()=>explore(m); tabs.appendChild(b); });
+  function explore(m){ setMap(m); [...tabs.children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m)); callouts.innerHTML='';
+    if(pinned){ feats.forEach(x=>x.el.classList.remove('hl')); showCallouts([pinned.n]); readout(pinned); } else ro.textContent=''; }
+  function readout(f){ ro.innerHTML=`<b>${f.n}</b><br>${IND[mode].name}: ${val(f,mode)==null?'no data':IND[mode].fmt(val(f,mode))}<br><span class="src">${f.s4} · ${f.p.toLocaleString('en-AU')} residents · worst quarter on ${f.cnt} of 7</span>`; }
+  const inp=document.getElementById('find'), lb=document.getElementById('sa2list'); let opts=[], act=-1;
+  const sorted=feats.slice().sort((a,b)=>a.n.localeCompare(b.n));
+  function pick(f){ inp.value=f.n; syncClear(); pinned=f; closeList(); feats.forEach(x=>x.el.classList.remove('hl')); showCallouts([f.n]); readout(f); }
+  function closeList(){ lb.hidden=true; inp.setAttribute('aria-expanded','false'); act=-1; }
+  function openList(){
+    const q=inp.value.trim().toLowerCase();
+    opts=q? sorted.filter(f=>f.n.toLowerCase().includes(q)) : sorted;
+    lb.innerHTML=''; act=-1;
+    if(!opts.length){ lb.innerHTML='<li aria-disabled="true">No SA2 with that name in Greater Brisbane</li>'; }
+    opts.forEach((f,i)=>{ const li=document.createElement('li'); li.id='opt'+i; li.setAttribute('role','option'); li.innerHTML=`<span>${f.n}</span><small>${f.s4}</small>`;
+      li.addEventListener('mousedown',e=>{e.preventDefault(); pick(f);}); lb.appendChild(li); });
+    lb.hidden=false; inp.setAttribute('aria-expanded','true'); }
+  function mark(i){ const items=[...lb.querySelectorAll('[role=option]')]; if(!items.length) return; act=(i+items.length)%items.length;
+    items.forEach((li,j)=>li.setAttribute('aria-selected',j===act)); items[act].scrollIntoView({block:'nearest'}); inp.setAttribute('aria-activedescendant',items[act].id); }
+  const clr=document.getElementById('clear');
+  function syncClear(){ clr.hidden=!inp.value; }
+  function clearSearch(){ inp.value=''; pinned=null; callouts.innerHTML=''; feats.forEach(x=>x.el.classList.remove('hl')); ro.textContent=''; syncClear(); closeList(); }
+  clr.addEventListener('click',()=>{ clearSearch(); inp.focus(); });
+  inp.addEventListener('input',syncClear);
+  inp.addEventListener('focus',()=>{ inp.select(); openList(); }); inp.addEventListener('input',()=>{ if(!inp.value.trim() && pinned){ pinned=null; callouts.innerHTML=''; feats.forEach(x=>x.el.classList.remove('hl')); ro.textContent=''; } openList(); });
+  inp.addEventListener('blur',()=>setTimeout(closeList,120));
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault(); if(lb.hidden) openList(); mark(act+1);}
+    else if(e.key==='ArrowUp'){e.preventDefault(); mark(act-1);}
+    else if(e.key==='Enter'){e.preventDefault(); const f= act>=0? opts[act] : opts.find(x=>x.n.toLowerCase()===inp.value.trim().toLowerCase())||opts[0]; if(f) pick(f);}
+    else if(e.key==='Escape'){closeList(); inp.blur();}
+    e.stopPropagation(); });
+  lb.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
+
+  /* ---------- deck ---------- */
+  const maxStep=s=>Math.max(0,...[...s.querySelectorAll('[data-step]')].map(e=>+e.dataset.step), s.dataset.map&&IND[s.dataset.map]&&!s.hasAttribute('data-explore')?1:0);
+  function render(changed){
+    const s=slides[cur];
+    slides.forEach((x,i)=>{ x.classList.toggle('on',i===cur); x.setAttribute('aria-hidden',i!==cur);
+      x.querySelectorAll('[data-step]').forEach(e=>e.classList.toggle('shown', i<cur || (i===cur && +e.dataset.step<=step))); });
+    const m=s.dataset.map;
+    if(m){ wrap.classList.add('on'); place(s.classList.contains('cover')?POS.cover:s.classList.contains('syn')?POS.syn:s.hasAttribute('data-explore')?POS.ex:POS.ind);
+      if(s.hasAttribute('data-explore')){ if(changed){ pinned=null; inp.value=''; clr.hidden=true; explore(m); } }
+      else { setMap(m); if(changed||step===0) { callouts.innerHTML=''; feats.forEach(f=>f.el&&f.el.classList.remove('hl')); }
+        if(step>=1 && IND[m]) setTimeout(()=>showCallouts(IND[m].hl), changed?650:0); } }
+    else { wrap.classList.remove('on'); callouts.innerHTML=''; }
+    const [a,b,c]=(s.dataset.meta||'||').split('|');
+    document.getElementById('m1').textContent=a; document.getElementById('m2').textContent=b; document.getElementById('m3').textContent=c; document.getElementById('m4').textContent=(cur+1)+' of '+N;
+    document.getElementById('count').textContent=(cur+1)+' / '+N;
+  }
+  function go(i,toEnd){ i=Math.max(0,Math.min(N-1,i)); const ch=i!==cur; cur=i; step=toEnd?maxStep(slides[cur]):0;
+    if(ch){ const s=slides[cur]; s.classList.remove('on'); void s.offsetWidth; }
+    render(ch); try{history.replaceState(null,'','#slide-'+(cur+1))}catch(e){} }
+  function next(){ if(step<maxStep(slides[cur])){step++;render(false)} else if(cur<N-1) go(cur+1) }
+  function prev(){ if(step>0){step--;render(false)} else if(cur>0) go(cur-1,true) }
+  function fit(){ const s=Math.min((innerWidth-32)/1280,(innerHeight-60)/720); stage.style.setProperty('--s',Math.max(.2,s)); }
+  addEventListener('resize',()=>{fit(); if(mode&&mode!=='outline'&&step>=1&&slides[cur].dataset.map) showCallouts(IND[mode].hl)});
+  addEventListener('keydown',e=>{
+    if(e.target.matches('input')) { if(e.key==='Escape') e.target.blur(); return; }
+    const k=e.key, ex=slides[cur].hasAttribute('data-explore');
+    if(ex && /^[0-7]$/.test(k)){ explore(k==='0'?'count':ORDER[+k-1]); return; }
+    if(k==='ArrowRight'||k==='PageDown'||k===' '||k==='Enter'){ if(e.target.matches('button,a')&&(k===' '||k==='Enter')) return; e.preventDefault(); next(); }
+    else if(k==='ArrowLeft'||k==='PageUp'||k==='Backspace'){ e.preventDefault(); prev(); }
+    else if(k==='Home') go(0); else if(k==='End') go(N-1,true);
+    else if(k==='f'||k==='F') toggleFs(); else if(k==='e'||k==='E') go(N-1);
+  });
+  function toggleFs(){ try{ if(document.fullscreenElement) document.exitFullscreen(); else { const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); if(r&&r.catch) r.catch(()=>{}); } }catch(e){} }
+  document.getElementById('next').onclick=next; document.getElementById('prev').onclick=prev; document.getElementById('fs').onclick=toggleFs;
+  let x0=null; stage.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
+  stage.addEventListener('touchend',e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>50) (dx<0?next:prev)(); x0=null; });
+  // cover graticule ticks (Greater Brisbane extent)
+  (function(){ const c=slides[0]; const add=(cls,st,txt)=>{const d=document.createElement(txt?'span':'i'); d.className=cls; Object.assign(d.style,st); if(txt) d.textContent=txt; c.appendChild(d);};
+    // ticks registered to the cover map: same extent and scale as the drawn SA2 map
+    const gx0=18,gx1=1262,gy0=18,gy1=702, P=POS.cover, mw=P.h*D.w/D.h;
+    const X=lo=>P.l+(lo-152.05)/(153.56-152.05)*mw, Y=la=>P.t+(-26.45-la)/(-26.45+28.37)*P.h;
+    [[152,'152°00′E'],[152.5,'152°30′E'],[153,'153°00′E'],[153.5,'153°30′E']].forEach(([v,t])=>{const x=X(v); add('gt',{left:x+'px',top:gy0+'px',width:'1px',height:'14px'}); add('gt',{left:x+'px',top:(gy1-14)+'px',width:'1px',height:'14px'}); add('gl',{left:(x+4)+'px',top:(gy0+2)+'px'},t);});
+    [[-26.5,'26°30′S'],[-27,'27°00′S'],[-27.5,'27°30′S'],[-28,'28°00′S']].forEach(([v,t])=>{const y=Y(v); add('gt',{left:(gx1-14)+'px',top:y+'px',width:'14px',height:'1px'}); add('gl',{left:(gx1-70)+'px',top:(y+3)+'px'},t);}); })();
+  document.querySelectorAll('.title').forEach(t=>{ if(t.textContent.length>38) t.classList.add('long'); });
+  addEventListener('hashchange',()=>{const h=/^#slide-(\d+)$/.exec(location.hash); if(h&&+h[1]-1!==cur) go(Math.min(N,+h[1])-1);});
+  fit(); const m=/^#slide-(\d+)$/.exec(location.hash); go(m?Math.min(N,+m[1])-1:0);
+})();
+</script>
+
+</body>
+</html>
