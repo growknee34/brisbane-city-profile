@@ -158,6 +158,10 @@ a{color:var(--datum)}
 .steps li::before{content:counter(s);font-family:var(--f-cond);font-weight:600;color:var(--datum);border:1.5px solid var(--datum);width:32px;height:32px;display:grid;place-items:center;font-size:18px;margin-top:2px}
 .btn{display:inline-block;margin-top:28px;padding:10px 16px;border:1.5px solid var(--datum);color:var(--datum);text-decoration:none;font-weight:600;font-size:20px}
 .btn:hover{background:var(--tint)}
+.btns{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px}
+.btns .btn{margin-top:0}
+.btn.primary{background:var(--datum);color:var(--paper)}
+.btn.primary:hover{background:var(--ink)}
 .shot img{display:block;max-height:430px;width:auto;max-width:100%;border:1px solid var(--ink);background:#fff}
 .shot figcaption{font-family:var(--f-cond);font-size:16px;color:var(--mid);margin-top:6px}
 
@@ -360,7 +364,7 @@ a{color:var(--datum)}
       <li data-step="2"><span><b>Inspect</b>: open the metadata record and its attribute descriptions</span></li>
       <li data-step="3"><span><b>Use</b>: open the Greater Brisbane Story Map</span></li>
     </ol>
-    <a class="btn" href="https://idigitaltwin.org/" target="_blank" rel="noopener">Open the Digital Twin</a></div>
+    <div class="btns"><a class="btn" href="https://idigitaltwin.org/" target="_blank" rel="noopener">Open the Digital Twin</a><a class="btn primary" href="https://idigitaltwin.org/?view=storyViewer&amp;story_uuid=dc1591ca-df16-4961-8231-7a58160cf9b8" target="_blank" rel="noopener">Open the Story Map</a></div></div>
     <figure class="shot"><img src="img/demo.webp" alt="Digital Twin metadata records for Group 2 Indicators 1 and 2"><figcaption>Fallback screenshots, in case the live system is slow.</figcaption></figure>
   </div></div>
 </section>
