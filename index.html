@@ -559,9 +559,9 @@ a{color:var(--datum)}
     <tr class="rise" style="--i:1"><th scope="row">Census tables and boundaries did not join</th><td>Matched on cleaned 2021 SA2 codes</td></tr>
     <tr class="rise" style="--i:2"><th scope="row">Inconsistent OSM green-space tags</th><td>Filtered to an agreed list of park and reserve tags</td></tr>
     <tr class="rise" style="--i:3"><th scope="row">Layers hard to find among all groups</th><td>Tagged every published layer with IDI</td></tr>
-    <tr class="rise" style="--i:4"><th scope="row">Grouped income and small populations</th><td>Estimate medians; keep nulls; flag small SA2s</td></tr>
+    <tr class="rise" style="--i:4"><th scope="row">Grouped income and small populations</th><td>Estimate medians; retain nulls; check the 15+ denominator and small SA2 counts</td></tr>
     <tr class="rise" style="--i:5"><th scope="row">Overlapping OSM green-space polygons</th><td>Dissolved before measuring, so no area is counted twice</td></tr>
-    <tr class="rise" style="--i:6"><th scope="row">Near-empty SA2s distorted map classes</th><td>Set to NULL below 100 residents</td></tr>
+    <tr class="rise" style="--i:6"><th scope="row">Near-empty SA2s distorted map classes</th><td>Set to NULL below 100 residents; classes start at the real minimum</td></tr>
   </tbody></table></div>
 </section>
 
