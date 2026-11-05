@@ -384,24 +384,55 @@ a{color:var(--datum)}
   </div>
 </section>
 
+<section class="slide" data-meta="Workflow, Ind. 1–2|g1_act, g2_bris, g3_melb|EPSG:4326" aria-label="Workflow for indicators 1 and 2">
+  <h2 class="title">From shared data to indicators (1–2)</h2>
+  <div class="body">
+    <ol class="flow">
+      <li class="rise" style="--i:0"><span class="sn">Discover</span><b>Digital Twin</b><span>Find inputs by IDI tag</span></li>
+      <li class="rise" style="--i:1"><span class="sn">Load</span><b>Jupyter</b><span>Read layers via WFS</span></li>
+      <li class="rise" style="--i:2"><span class="sn">Calculate</span><b>Python</b><span>Grouped median; rate of 15+</span></li>
+      <li class="rise" style="--i:3"><span class="sn">Validate</span><b>Group 3 check</b><span>Compare with ABS G02 / G43</span></li>
+      <li class="rise" style="--i:4"><span class="sn">Publish</span><b>GeoServer + DT</b><span>g2_results; harvest and describe in DT</span></li>
+    </ol>
+    <div class="used" data-step="1"><h3 class="sub">Data used</h3><dl>
+      <div><dt>Ind 1</dt><dd>Group 1 – g1_act:g33_sa2_hh_income_2021 (ABS 2021 Census G33 household income bands)</dd></div>
+      <div><dt>Ind 2</dt><dd>Group 2 – g2_bris:g2_indicator2_lfhrp_sa2_2021 (ABS 2021 Census LFHRP; our own Phase 1 layer)</dd></div>
+      <div><dt>Check</dt><dd>Group 3 – g3_melb:sa2_income (G02) and g3_melb:sa2_employment (G43), comparison only</dd></div>
+    </dl></div>
+  </div>
+</section>
+
 <section class="slide ind" data-map="i1" data-meta="Ind. 1 Income|g2_bris_indicator1_income_2021|EPSG:4326" aria-label="Indicator 1">
   <h2 class="title">Indicator 1 – Median household income</h2>
   <div class="body"><div class="left">
-    <div><p class="lab">Measure</p><p class="txt">Estimated median weekly household income; grouped-band interpolation</p></div>
-    <div><p class="lab">Pattern</p><ul class="bul txt"><li>Fig Tree Pocket ≈ $3,799 a week</li><li>Southern Moreton Bay Islands ≈ $760 a week</li><li>239 estimates; 7 SA2s with no data</li></ul></div>
-    <div data-step="2" class="sdg"><p><b>SDG 10.2</b> Social and economic inclusion of all, irrespective of income (proxy, not indicator 10.2.1)</p><p><b>SDG 1.2</b> Reduce the share of people living in poverty</p></div>
-    <p class="src">Source: Group 1, ABS 2021 Census G33 household income counts (found via the IDI tag); Group 3 G02 medians used as a check</p>
+    <div><p class="lab">Formula</p><p class="txt">Estimated median = L + ((N/2 − C) ÷ f) × w, within the income band holding the 50th-percentile household</p></div>
+    <div><p class="lab">Findings</p><ul class="bul txt"><li>239 of 246 SA2s estimated; 7 no data</li><li>Highest: Fig Tree Pocket $3,799 a week</li><li>Lowest: Southern Moreton Bay Islands $760</li></ul></div>
+    <div><p class="lab">Method</p><ul class="bul small"><li>Partial and not-stated incomes excluded</li><li>Checked against Group 3 G02 medians: mean difference $7.99 a week</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 10.2</b> Economic inclusion of all, irrespective of income (context, not indicator 10.2.1)</p><p><b>SDG 1.2</b> Poverty reduction (context only; not a poverty rate)</p></div>
+    <p class="src">Source: Group 1, g1_act:g33_sa2_hh_income_2021 (ABS 2021 Census G33)</p>
   </div></div>
 </section>
 
 <section class="slide ind" data-map="i2" data-meta="Ind. 2 Employment|g2_bris_indicator2_employment_2021|EPSG:4326" aria-label="Indicator 2">
   <h2 class="title">Indicator 2 – Employment rate</h2>
   <div class="body"><div class="left">
-    <div><p class="lab">Measure</p><p class="txt">Employed persons ÷ population aged 15+ × 100; all employed categories</p></div>
-    <div><p class="lab">Pattern</p><ul class="bul txt"><li>Highest: Norman Park 75.85%</li><li>Lowest: Southern Moreton Bay Islands 26.94%</li><li>Low island rates call for an age-aware review of access to work</li></ul></div>
-    <div data-step="2" class="sdg"><p><b>SDG 8.5</b> Full and productive employment and decent work for all (proxy, not indicator 8.5.2)</p><p><b>SDG 10.2</b> Inclusion of all</p></div>
-    <p class="src">Source: Group 2 (our Phase 1 layer), g2_bris:g2_indicator2_lfhrp_sa2_2021 (ABS 2021 Census LFHRP); Group 3 G43 rates used as a check</p>
+    <div><p class="lab">Formula</p><p class="txt">Employed persons ÷ persons aged 15+ × 100</p></div>
+    <div><p class="lab">Findings</p><ul class="bul txt"><li>243 of 246 SA2s calculated; 3 no data</li><li>Highest: Norman Park 75.9%, Ripley 75.7%</li><li>Low: Southern Moreton Bay Islands 26.9%</li></ul></div>
+    <div><p class="lab">Method</p><ul class="bul small"><li>Denominator is everyone aged 15+, not the labour force, so not 100 minus unemployment</li><li>Checked against Group 3 G43: within 0.27 points where 15+ population ≥ 200</li></ul></div>
+    <div data-step="2" class="sdg"><p><b>SDG 8.5</b> Full and productive employment for all (context, not unemployment indicator 8.5.2)</p><p><b>SDG 10.2</b> Economic inclusion of all</p></div>
+    <p class="src">Source: Group 2, g2_bris:g2_indicator2_lfhrp_sa2_2021 (ABS 2021 Census LFHRP; our Phase 1 layer)</p>
   </div></div>
+</section>
+
+<section class="slide" data-meta="Small SA2s, Ind. 1–2|Indicators 1 and 2|—" aria-label="Small SA2s">
+  <h2 class="title">Small SA2s: no data is kept as null, never zero</h2>
+  <div class="body">
+    <div class="roles">
+      <div class="role rise" style="--i:0"><h4>Indicator 1: Median income</h4><p class="mut">No population threshold</p><ul class="bul txt" style="display:grid;gap:6px;margin-top:6px"><li>7 SA2s have no usable income distribution, so null</li><li>Partial and not-stated incomes excluded</li><li>A median is not a rare-event rate, so no cut-off</li></ul></div>
+      <div class="role rise" style="--i:1"><h4>Indicator 2: Employment rate</h4><p class="mut">Flag under 200 people aged 15+</p><ul class="bul txt" style="display:grid;gap:6px;margin-top:6px"><li>3 SA2s have nobody aged 15+, so null</li><li>New Chum: 3 people, 0% here vs 50% in ABS G43</li><li>Flagged, not removed; 200 is our own line, not ABS</li></ul></div>
+    </div>
+    <p class="sdg" data-step="1" style="margin-top:26px;font-size:20px">For comparison: Indicators 3–4 use thresholds of 1,000 and 100 residents; Indicators 5–7 show SA2s under 100 people as no data.</p>
+  </div>
 </section>
 
 <section class="slide" data-meta="Workflow, Ind. 3–4|g4_syd, g2_bris layers|EPSG:4326" aria-label="Workflow for indicators 3 and 4">
