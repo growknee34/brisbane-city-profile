@@ -214,6 +214,7 @@ a{color:var(--datum)}
 .chal th,.chal td{text-align:left;padding:10px 14px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
 .chal thead th{font-family:var(--f-cond);color:var(--mid);font-weight:500;font-size:18px;border-bottom:1.5px solid var(--ink)}
 .chal tbody th{font-weight:600;width:44%}
+.contrib tbody th{width:20%}.contrib td:nth-child(2){width:22%;white-space:nowrap}.contrib th,.contrib td{padding:14px 18px 14px 0}
 
 /* explorer */
 .ex .left{position:absolute;left:0;top:0;width:450px;bottom:0;display:grid;gap:14px;align-content:start}
@@ -539,6 +540,16 @@ a{color:var(--datum)}
   </div></div>
 </section>
 
+<section class="slide" data-meta="Contributions|—|—" aria-label="Contribution of each member">
+  <h2 class="title">Contribution of each member</h2>
+  <div class="body"><table class="chal contrib"><thead><tr><th scope="col">Member</th><th scope="col">Indicators</th><th scope="col">Other contributions</th></tr></thead><tbody>
+    <tr class="rise" style="--i:0"><th scope="row">Yanfei Zhang</th><td>Phase 2: Indicators 1–2</td><td>Phase 1 CLTHP with Eliza; analysis, validation, metadata and slides</td></tr>
+    <tr class="rise" style="--i:1"><th scope="row">Eliza Wu</th><td>Phase 2: Indicators 3–4</td><td>Phase 1 CLTHP with Yanfei; Indicators 3–4 Jupyter pipeline; analysis, validation, metadata and slides</td></tr>
+    <tr class="rise" style="--i:2"><th scope="row">Elvis Lin</th><td>Phase 2: Indicators 5–7</td><td>Phase 1 LFHRP with Henry; Indicators 5–7 (calculation, GeoServer, DT metadata); SDG synthesis; slide design; live demo with Henry</td></tr>
+    <tr class="rise" style="--i:3"><th scope="row">Phuc Hung Nguyen</th><td>Phase 2: Story Map</td><td>Phase 1: GeoServer publishing and Digital Twin harvesting and sharing; Story Map; live demo with Elvis</td></tr>
+  </tbody></table></div>
+</section>
+
 <dl class="meta" id="meta" aria-label="Slide metadata"><div><dt>Topic</dt><dd id="m1"></dd></div><div><dt>Layer or source</dt><dd id="m2"></dd></div><div><dt>CRS</dt><dd id="m3"></dd></div><div><dt>Slide</dt><dd id="m4"></dd></div></dl>
 </div>
 
@@ -730,7 +741,7 @@ a{color:var(--datum)}
     if(k==='ArrowRight'||k==='PageDown'||k===' '||k==='Enter'){ if(e.target.matches('button,a')&&(k===' '||k==='Enter')) return; e.preventDefault(); next(); }
     else if(k==='ArrowLeft'||k==='PageUp'||k==='Backspace'){ e.preventDefault(); prev(); }
     else if(k==='Home') go(0); else if(k==='End') go(N-1,true);
-    else if(k==='f'||k==='F') toggleFs(); else if(k==='e'||k==='E') go(N-1);
+    else if(k==='f'||k==='F') toggleFs(); else if(k==='e'||k==='E') go(slides.findIndex(x=>x.hasAttribute('data-explore')));
   });
   function toggleFs(){ try{ if(document.fullscreenElement) document.exitFullscreen(); else { const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); if(r&&r.catch) r.catch(()=>{}); } }catch(e){} }
   document.getElementById('next').onclick=next; document.getElementById('prev').onclick=prev; document.getElementById('fs').onclick=toggleFs;
